@@ -1,1 +1,1378 @@
+<!DOCTYPE html>
 
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0">
+
+<title>Parking Management System</title>
+
+
+<style>
+
+* {
+    box-sizing: border-box;
+}
+
+
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    background: #f4f6f8;
+    color: #222;
+}
+
+
+header {
+    background: #1f2937;
+    color: white;
+    padding: 20px;
+    text-align: center;
+}
+
+
+.container {
+    width: 95%;
+    max-width: 1200px;
+    margin: 20px auto;
+}
+
+
+.grid {
+    display: grid;
+    grid-template-columns:
+        repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+
+.card {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow:
+        0 2px 8px rgba(0,0,0,0.08);
+}
+
+
+h2 {
+    margin-top: 0;
+}
+
+
+label {
+    display: block;
+    margin-top: 10px;
+    font-weight: bold;
+}
+
+
+input,
+select,
+button {
+    width: 100%;
+    padding: 11px;
+    margin-top: 6px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    font-size: 15px;
+}
+
+
+button {
+    background: #2563eb;
+    color: white;
+    border: none;
+    cursor: pointer;
+    margin-top: 15px;
+}
+
+
+button:hover {
+    opacity: 0.9;
+}
+
+
+.message {
+    padding: 12px;
+    margin: 15px 0;
+    border-radius: 6px;
+    display: none;
+}
+
+
+.success {
+    background: #dcfce7;
+    color: #166534;
+}
+
+
+.error {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+
+.stats {
+    display: grid;
+    grid-template-columns:
+        repeat(auto-fit, minmax(180px, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+
+.stat {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    text-align: center;
+    box-shadow:
+        0 2px 8px rgba(0,0,0,0.08);
+}
+
+
+.stat-number {
+    font-size: 25px;
+    font-weight: bold;
+    margin-top: 8px;
+}
+
+
+.slots {
+    display: grid;
+    grid-template-columns:
+        repeat(auto-fill, minmax(80px, 1fr));
+    gap: 8px;
+    margin-top: 15px;
+}
+
+
+.slot {
+    padding: 12px 5px;
+    text-align: center;
+    border-radius: 6px;
+    font-weight: bold;
+}
+
+
+.available {
+    background: #dcfce7;
+    color: #166534;
+}
+
+
+.occupied {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+}
+
+
+th,
+td {
+    padding: 10px;
+    border-bottom: 1px solid #ddd;
+    text-align: left;
+}
+
+
+th {
+    background: #f3f4f6;
+}
+
+
+.receipt {
+    margin-top: 20px;
+    padding: 15px;
+    background: #f3f4f6;
+    border-radius: 8px;
+    display: none;
+}
+
+
+.rate-display {
+    text-align: center;
+    padding: 15px;
+    background: #f3f4f6;
+    border-radius: 8px;
+    margin-bottom: 15px;
+}
+
+
+.rate-display strong {
+    font-size: 25px;
+}
+
+
+.barrier-closed {
+    color: #991b1b;
+}
+
+
+.barrier-open {
+    color: #166534;
+}
+
+
+@media (max-width: 600px) {
+
+    table {
+        font-size: 13px;
+    }
+
+    th,
+    td {
+        padding: 7px;
+    }
+
+}
+
+</style>
+
+</head>
+
+
+<body>
+
+
+<header>
+
+<h1>🚗 Parking Management System</h1>
+
+<p>Parking control and payment management</p>
+
+</header>
+
+
+<div class="container">
+
+
+<div id="message"
+     class="message">
+</div>
+
+
+<!-- STATISTICS -->
+
+<div class="stats">
+
+
+<div class="stat">
+
+<div>Available Slots</div>
+
+<div id="availableCount"
+     class="stat-number">
+0
+</div>
+
+</div>
+
+
+<div class="stat">
+
+<div>Occupied Slots</div>
+
+<div id="occupiedCount"
+     class="stat-number">
+0
+</div>
+
+</div>
+
+
+<div class="stat">
+
+<div>Waiting Queue</div>
+
+<div id="queueCount"
+     class="stat-number">
+0
+</div>
+
+</div>
+
+
+<div class="stat">
+
+<div>Exit Barrier</div>
+
+<div id="barrierStatus"
+     class="stat-number barrier-closed">
+🔴 Closed
+</div>
+
+</div>
+
+
+</div>
+
+
+<div class="grid">
+
+
+<!-- ENTRY -->
+
+<div class="card">
+
+<h2>🚘 Vehicle Entry</h2>
+
+
+<form id="entryForm">
+
+
+<label>
+Vehicle Number
+</label>
+
+<input
+    type="text"
+    id="entryVehicle"
+    placeholder="KDA 123A"
+    required
+>
+
+
+<label>
+Owner Name
+</label>
+
+<input
+    type="text"
+    id="ownerName"
+    placeholder="Owner name"
+    required
+>
+
+
+<label>
+Vehicle Type
+</label>
+
+<select
+    id="vehicleType"
+    required
+>
+
+<option value="">
+Select vehicle type
+</option>
+
+<option value="Car">
+Car
+</option>
+
+<option value="Motorcycle">
+Motorcycle
+</option>
+
+<option value="Van">
+Van
+</option>
+
+<option value="Truck">
+Truck
+</option>
+
+</select>
+
+
+<button type="submit">
+Park Vehicle
+</button>
+
+
+</form>
+
+</div>
+
+
+<!-- EXIT -->
+
+<div class="card">
+
+<h2>🚪 Vehicle Exit</h2>
+
+
+<form id="exitForm">
+
+
+<label>
+Vehicle Number
+</label>
+
+<input
+    type="text"
+    id="exitVehicle"
+    placeholder="KDA 123A"
+    required
+>
+
+
+<label>
+Payment Method
+</label>
+
+<select
+    id="paymentMethod"
+    required
+>
+
+<option value="">
+Select payment method
+</option>
+
+<option value="Cash">
+Cash
+</option>
+
+<option value="M-Pesa">
+M-Pesa
+</option>
+
+<option value="Card">
+Card
+</option>
+
+</select>
+
+
+<button type="submit">
+Confirm Payment & Exit
+</button>
+
+
+</form>
+
+
+<div id="receipt"
+     class="receipt">
+
+
+<h3>🧾 Payment Receipt</h3>
+
+
+<p>
+<strong>Vehicle:</strong>
+<span id="receiptVehicle"></span>
+</p>
+
+
+<p>
+<strong>Slot:</strong>
+<span id="receiptSlot"></span>
+</p>
+
+
+<p>
+<strong>Duration:</strong>
+<span id="receiptDuration"></span>
+minutes
+</p>
+
+
+<p>
+<strong>Amount:</strong>
+KSh
+<span id="receiptAmount"></span>
+</p>
+
+
+<p>
+<strong>Payment:</strong>
+<span id="receiptMethod"></span>
+</p>
+
+
+<p>
+<strong>Status:</strong>
+<span id="receiptStatus"></span>
+</p>
+
+
+<p>
+<strong>Reference:</strong>
+<span id="receiptReference"></span>
+</p>
+
+
+<p>
+<strong>Barrier:</strong>
+<span id="receiptBarrier"></span>
+</p>
+
+
+</div>
+
+</div>
+
+
+<!-- SEARCH -->
+
+<div class="card">
+
+<h2>🔎 Search Vehicle</h2>
+
+
+<form id="searchForm">
+
+
+<label>
+Vehicle Number
+</label>
+
+<input
+    type="text"
+    id="searchVehicle"
+    placeholder="KDA 123A"
+    required
+>
+
+
+<button type="submit">
+Search
+</button>
+
+
+</form>
+
+
+<div id="searchResult"></div>
+
+</div>
+
+
+<!-- RATE -->
+
+<div class="card">
+
+<h2>⚙️ Parking Rate Management</h2>
+
+
+<div class="rate-display">
+
+<p>
+Current parking rate:
+</p>
+
+
+<strong>
+
+KSh
+<span id="currentRate">
+1
+</span>
+per minute
+
+</strong>
+
+</div>
+
+
+<form id="rateForm">
+
+
+<label>
+New Rate (KSh per minute)
+</label>
+
+
+<input
+    type="number"
+    id="newRate"
+    min="0"
+    step="0.01"
+    placeholder="Enter new rate"
+    required
+>
+
+
+<button type="submit">
+Update Parking Rate
+</button>
+
+
+</form>
+
+</div>
+
+
+</div>
+
+
+<!-- PARKING SLOTS -->
+
+<div class="card"
+     style="margin-top:20px;">
+
+
+<h2>🅿️ Parking Slots</h2>
+
+
+<div id="slots"
+     class="slots">
+</div>
+
+
+</div>
+
+
+<!-- PARKED VEHICLES -->
+
+<div class="card"
+     style="margin-top:20px;">
+
+
+<h2>🚗 Currently Parked Vehicles</h2>
+
+
+<div style="overflow-x:auto;">
+
+
+<table>
+
+
+<thead>
+
+<tr>
+
+<th>Vehicle</th>
+<th>Owner</th>
+<th>Type</th>
+<th>Slot</th>
+<th>Entry Time</th>
+
+</tr>
+
+</thead>
+
+
+<tbody id="vehiclesTable">
+</tbody>
+
+
+</table>
+
+
+</div>
+
+
+</div>
+
+
+<!-- WAITING QUEUE -->
+
+<div class="card"
+     style="margin-top:20px;">
+
+
+<h2>⏳ Waiting Queue</h2>
+
+
+<div id="queueList">
+No vehicles waiting.
+</div>
+
+
+</div>
+
+
+<!-- PAYMENT HISTORY -->
+
+<div class="card"
+     style="margin-top:20px;">
+
+
+<h2>💰 Payment History</h2>
+
+
+<div style="overflow-x:auto;">
+
+
+<table>
+
+
+<thead>
+
+<tr>
+
+<th>Vehicle</th>
+<th>Amount</th>
+<th>Method</th>
+<th>Status</th>
+<th>Reference</th>
+<th>Time</th>
+
+</tr>
+
+</thead>
+
+
+<tbody id="paymentsTable">
+</tbody>
+
+
+</table>
+
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+<script>
+
+
+// ==================================================
+// MESSAGE
+// ==================================================
+
+function showMessage(message, success) {
+
+    const box =
+        document.getElementById("message");
+
+    box.textContent = message;
+
+    box.className =
+        "message " +
+        (success ? "success" : "error");
+
+    box.style.display = "block";
+
+
+    setTimeout(() => {
+
+        box.style.display = "none";
+
+    }, 5000);
+}
+
+
+// ==================================================
+// ENTRY
+// ==================================================
+
+document
+.getElementById("entryForm")
+.addEventListener(
+    "submit",
+    async function(event) {
+
+        event.preventDefault();
+
+
+        const data = {
+
+            vehicle_number:
+                document
+                .getElementById("entryVehicle")
+                .value,
+
+            owner_name:
+                document
+                .getElementById("ownerName")
+                .value,
+
+            vehicle_type:
+                document
+                .getElementById("vehicleType")
+                .value
+        };
+
+
+        try {
+
+            const response =
+                await fetch("/entry", {
+
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body:
+                        JSON.stringify(data)
+                });
+
+
+            const result =
+                await response.json();
+
+
+            showMessage(
+                result.message,
+                result.success
+            );
+
+
+            if (result.success) {
+
+                document
+                    .getElementById("entryForm")
+                    .reset();
+
+                loadVehicles();
+                loadSlots();
+                loadQueue();
+            }
+
+        } catch (error) {
+
+            showMessage(
+                "Could not connect to server.",
+                false
+            );
+
+        }
+
+    }
+);
+
+
+// ==================================================
+// EXIT
+// ==================================================
+
+document
+.getElementById("exitForm")
+.addEventListener(
+    "submit",
+    async function(event) {
+
+        event.preventDefault();
+
+
+        const data = {
+
+            vehicle_number:
+                document
+                .getElementById("exitVehicle")
+                .value,
+
+            payment_method:
+                document
+                .getElementById("paymentMethod")
+                .value
+        };
+
+
+        try {
+
+            const response =
+                await fetch("/exit", {
+
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body:
+                        JSON.stringify(data)
+                });
+
+
+            const result =
+                await response.json();
+
+
+            showMessage(
+                result.message,
+                result.success
+            );
+
+
+            if (result.success) {
+
+                // Show receipt
+                document
+                    .getElementById("receipt")
+                    .style.display = "block";
+
+
+                document
+                    .getElementById("receiptVehicle")
+                    .textContent =
+                        result.vehicle_number;
+
+
+                document
+                    .getElementById("receiptSlot")
+                    .textContent =
+                        result.slot_number;
+
+
+                document
+                    .getElementById("receiptDuration")
+                    .textContent =
+                        result.duration_minutes;
+
+
+                document
+                    .getElementById("receiptAmount")
+                    .textContent =
+                        Number(result.cost)
+                        .toFixed(2);
+
+
+                document
+                    .getElementById("receiptMethod")
+                    .textContent =
+                        result.payment_method;
+
+
+                document
+                    .getElementById("receiptStatus")
+                    .textContent =
+                        result.payment_status;
+
+
+                document
+                    .getElementById("receiptReference")
+                    .textContent =
+                        result.payment_reference;
+
+
+                document
+                    .getElementById("receiptBarrier")
+                    .textContent =
+                        "🟢 Open";
+
+
+                // Open barrier display
+                const barrier =
+                    document
+                    .getElementById(
+                        "barrierStatus"
+                    );
+
+
+                barrier.textContent =
+                    "🟢 Open";
+
+
+                barrier.className =
+                    "stat-number barrier-open";
+
+
+                // Reset barrier after 5 seconds
+                setTimeout(() => {
+
+                    barrier.textContent =
+                        "🔴 Closed";
+
+                    barrier.className =
+                        "stat-number barrier-closed";
+
+                    document
+                        .getElementById(
+                            "receiptBarrier"
+                        )
+                        .textContent =
+                            "🔴 Closed";
+
+                }, 5000);
+
+
+                // Reset exit form
+                document
+                    .getElementById("exitForm")
+                    .reset();
+
+
+                loadVehicles();
+                loadSlots();
+                loadQueue();
+                loadPayments();
+
+            }
+
+        } catch (error) {
+
+            showMessage(
+                "Could not connect to server.",
+                false
+            );
+
+        }
+
+    }
+);
+
+
+// ==================================================
+// SEARCH
+// ==================================================
+
+document
+.getElementById("searchForm")
+.addEventListener(
+    "submit",
+    async function(event) {
+
+        event.preventDefault();
+
+
+        const vehicle =
+            document
+            .getElementById("searchVehicle")
+            .value;
+
+
+        try {
+
+            const response =
+                await fetch(
+                    "/search?vehicle_number=" +
+                    encodeURIComponent(vehicle)
+                );
+
+
+            const result =
+                await response.json();
+
+
+            const box =
+                document
+                .getElementById("searchResult");
+
+
+            if (!result.success) {
+
+                box.innerHTML =
+                    "<p>" +
+                    result.message +
+                    "</p>";
+
+                return;
+            }
+
+
+            box.innerHTML = `
+
+                <hr>
+
+                <p>
+                    <strong>Vehicle:</strong>
+                    ${result.vehicle_number}
+                </p>
+
+                <p>
+                    <strong>Owner:</strong>
+                    ${result.owner_name}
+                </p>
+
+                <p>
+                    <strong>Type:</strong>
+                    ${result.vehicle_type}
+                </p>
+
+                <p>
+                    <strong>Status:</strong>
+                    ${
+                        result.parked
+                        ? "Parked"
+                        : "Not parked"
+                    }
+                </p>
+
+                ${
+                    result.parked
+                    ?
+                    `
+                    <p>
+                        <strong>Slot:</strong>
+                        ${result.slot_number}
+                    </p>
+
+                    <p>
+                        <strong>Entry:</strong>
+                        ${formatDate(
+                            result.entry_time
+                        )}
+                    </p>
+                    `
+                    :
+                    ""
+                }
+
+            `;
+
+        } catch (error) {
+
+            showMessage(
+                "Could not search vehicle.",
+                false
+            );
+
+        }
+
+    }
+);
+
+
+// ==================================================
+// RATE
+// ==================================================
+
+async function loadRate() {
+
+    try {
+
+        const response =
+            await fetch("/rate");
+
+        const result =
+            await response.json();
+
+
+        if (result.success) {
+
+            document
+                .getElementById("currentRate")
+                .textContent =
+                    Number(result.rate)
+                    .toFixed(2);
+
+        }
+
+    } catch (error) {
+
+        console.error(
+            "Could not load rate.",
+            error
+        );
+
+    }
+}
+
+
+document
+.getElementById("rateForm")
+.addEventListener(
+    "submit",
+    async function(event) {
+
+        event.preventDefault();
+
+
+        const newRate =
+            document
+            .getElementById("newRate")
+            .value;
+
+
+        try {
+
+            const response =
+                await fetch("/rate", {
+
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body:
+                        JSON.stringify({
+                            rate: newRate
+                        })
+                });
+
+
+            const result =
+                await response.json();
+
+
+            showMessage(
+                result.message,
+                result.success
+            );
+
+
+            if (result.success) {
+
+                document
+                    .getElementById("currentRate")
+                    .textContent =
+                        Number(result.rate)
+                        .toFixed(2);
+
+
+                document
+                    .getElementById("newRate")
+                    .value = "";
+
+            }
+
+        } catch (error) {
+
+            showMessage(
+                "Could not update parking rate.",
+                false
+            );
+
+        }
+
+    }
+);
+
+
+// ==================================================
+// VEHICLES
+// ==================================================
+
+async function loadVehicles() {
+
+    try {
+
+        const response =
+            await fetch("/vehicles");
+
+        const vehicles =
+            await response.json();
+
+
+        const table =
+            document
+            .getElementById("vehiclesTable");
+
+
+        table.innerHTML = "";
+
+
+        vehicles.forEach(vehicle => {
+
+            const row =
+                document.createElement("tr");
+
+
+            row.innerHTML = `
+
+                <td>
+                    ${vehicle.vehicle_number}
+                </td>
+
+                <td>
+                    ${vehicle.owner_name}
+                </td>
+
+                <td>
+                    ${vehicle.vehicle_type}
+                </td>
+
+                <td>
+                    ${vehicle.slot_number}
+                </td>
+
+                <td>
+                    ${formatDate(
+                        vehicle.entry_time
+                    )}
+                </td>
+
+            `;
+
+
+            table.appendChild(row);
+
+        });
+
+    } catch (error) {
+
+        console.error(
+            "Could not load vehicles.",
+            error
+        );
+
+    }
+}
+
+
+// ==================================================
+// SLOTS
+// ==================================================
+
+async function loadSlots() {
+
+    try {
+
+        const response =
+            await fetch("/slots");
+
+        const slots =
+            await response.json();
+
+
+        const container =
+            document
+            .getElementById("slots");
+
+
+        container.innerHTML = "";
+
+
+        let available = 0;
+        let occupied = 0;
+
+
+        slots.forEach(slot => {
+
+            const div =
+                document.createElement("div");
+
+
+            const isAvailable =
+                slot.status === "Available";
+
+
+            if (isAvailable) {
+                available++;
+            } else {
+                occupied++;
+            }
+
+
+            div.className =
+                "slot " +
+                (
+                    isAvailable
+                    ? "available"
+                    : "occupied"
+                );
+
+
+            div.innerHTML = `
+
+                <div>
+                    ${slot.slot_number}
+                </div>
+
+                <small>
+                    ${slot.status}
+                </small>
+
+            `;
+
+
+            container.app
