@@ -1,21 +1,34 @@
 from flask import Flask, render_template, request, jsonify
+
 import sqlite3
+
 from datetime import datetime
+
 from collections import deque
+
 import os
 
 
 app = Flask(__name__)
+
 
 DATABASE = os.path.join(
     os.path.dirname(__file__),
     "parking.db"
 )
 
-# Waiting queue
+
+# ==================================================
+# WAITING QUEUE
+# ==================================================
+
 waiting_queue = deque()
 
-# Simulated barrier
+
+# ==================================================
+# SIMULATED BARRIER
+# ==================================================
+
 barrier_state = "Closed"
 
 
@@ -50,8 +63,11 @@ def find_available_slot(connection):
         LIMIT 1
     """).fetchone()
 
+
     if slot:
+
         return slot["slot_number"]
+
 
     return None
 
@@ -60,13 +76,18 @@ def find_available_slot(connection):
 # FIND VEHICLE
 # ==================================================
 
-def find_vehicle(connection, vehicle_number):
+def find_vehicle(
+    connection,
+    vehicle_number
+):
 
     return connection.execute("""
         SELECT *
         FROM vehicles
         WHERE vehicle_number = ?
-    """, (vehicle_number,)).fetchone()
+    """, (
+        vehicle_number,
+    )).fetchone()
 
 
 # ==================================================
@@ -77,16 +98,21 @@ def get_cost_per_minute():
 
     connection = get_db_connection()
 
+
     result = connection.execute("""
         SELECT cost_per_minute
         FROM parking_settings
         WHERE id = 1
     """).fetchone()
 
+
     connection.close()
 
+
     if result is None:
+
         return 1
+
 
     return result["cost_per_minute"]
 
@@ -95,30 +121,39 @@ def set_cost_per_minute(new_rate):
 
     connection = get_db_connection()
 
+
     try:
 
         connection.execute("""
             UPDATE parking_settings
             SET cost_per_minute = ?
             WHERE id = 1
-        """, (new_rate,))
+        """, (
+            new_rate,
+        ))
+
 
         connection.commit()
+
 
         return {
             "success": True,
             "rate": new_rate,
-            "message": "Parking rate updated successfully."
+            "message":
+                "Parking rate updated successfully."
         }
+
 
     except Exception as error:
 
         connection.rollback()
 
+
         return {
             "success": False,
             "message": str(error)
         }
+
 
     finally:
 
@@ -129,16 +164,26 @@ def set_cost_per_minute(new_rate):
 # DURATION AND COST
 # ==================================================
 
-def calculate_duration(entry_time, exit_time):
+def calculate_duration(
+    entry_time,
+    exit_time
+):
 
-    duration = exit_time - entry_time
+    duration = (
+        exit_time -
+        entry_time
+    )
+
 
     minutes = int(
         duration.total_seconds() / 60
     )
 
+
     if minutes < 1:
+
         minutes = 1
+
 
     return minutes
 
@@ -146,6 +191,7 @@ def calculate_duration(entry_time, exit_time):
 def calculate_cost(minutes):
 
     rate = get_cost_per_minute()
+
 
     return minutes * rate
 
@@ -167,22 +213,31 @@ def create_payment(
         "Card"
     ]
 
+
     if payment_method not in allowed_methods:
 
         return {
             "success": False,
-            "message": "Invalid payment method."
+            "message":
+                "Invalid payment method."
         }
+
 
     timestamp = datetime.now().strftime(
         "%Y%m%d%H%M%S%f"
     )
 
+
     prefix = {
+
         "Cash": "CASH",
+
         "M-Pesa": "MPESA",
+
         "Card": "CARD"
+
     }
+
 
     payment_reference = (
         prefix[payment_method]
@@ -190,9 +245,12 @@ def create_payment(
         + timestamp
     )
 
-    payment_time = datetime.now().isoformat()
 
-    # Simulated confirmation
+    payment_time = (
+        datetime.now().isoformat()
+    )
+
+
     connection.execute("""
         INSERT INTO payments (
             parking_record_id,
@@ -212,6 +270,7 @@ def create_payment(
         payment_time
     ))
 
+
     return {
         "success": True,
         "reference": payment_reference
@@ -226,12 +285,15 @@ def open_barrier():
 
     global barrier_state
 
+
     barrier_state = "Open"
+
 
     return {
         "success": True,
         "barrier": "Open",
-        "message": "Payment confirmed. Barrier opened."
+        "message":
+            "Payment confirmed. Barrier opened."
     }
 
 
@@ -247,43 +309,69 @@ def enter_vehicle(
 
     connection = get_db_connection()
 
+
     try:
 
         vehicle_number = (
-            vehicle_number.strip().upper()
+            vehicle_number
+            .strip()
+            .upper()
         )
 
-        owner_name = owner_name.strip()
-        vehicle_type = vehicle_type.strip()
+
+        owner_name = (
+            owner_name
+            .strip()
+        )
+
+
+        vehicle_type = (
+            vehicle_type
+            .strip()
+        )
+
 
         if not vehicle_number:
 
             return {
                 "success": False,
-                "message": "Vehicle number is required."
+                "message":
+                    "Vehicle number is required."
             }
+
 
         if not owner_name:
 
             return {
                 "success": False,
-                "message": "Owner name is required."
+                "message":
+                    "Owner name is required."
             }
+
 
         if not vehicle_type:
 
             return {
                 "success": False,
-                "message": "Vehicle type is required."
+                "message":
+                    "Vehicle type is required."
             }
 
-        # Find existing vehicle
+
+        # ------------------------------------------
+        # FIND EXISTING VEHICLE
+        # ------------------------------------------
+
         vehicle = find_vehicle(
             connection,
             vehicle_number
         )
 
-        # Create vehicle
+
+        # ------------------------------------------
+        # CREATE VEHICLE
+        # ------------------------------------------
+
         if vehicle is None:
 
             cursor = connection.execute("""
@@ -299,38 +387,58 @@ def enter_vehicle(
                 vehicle_type
             ))
 
+
             vehicle_id = cursor.lastrowid
+
 
         else:
 
             vehicle_id = vehicle["id"]
 
-        # Check if already parked
+
+        # ------------------------------------------
+        # CHECK IF ALREADY PARKED
+        # ------------------------------------------
+
         active = connection.execute("""
             SELECT *
             FROM parking_records
             WHERE vehicle_id = ?
             AND exit_time IS NULL
-        """, (vehicle_id,)).fetchone()
+        """, (
+            vehicle_id,
+        )).fetchone()
+
 
         if active:
 
             connection.rollback()
 
+
             return {
                 "success": False,
-                "message": "This vehicle is already parked."
+                "message":
+                    "This vehicle is already parked."
             }
 
-        # Find slot
+
+        # ------------------------------------------
+        # FIND PARKING SLOT
+        # ------------------------------------------
+
         slot_number = find_available_slot(
             connection
         )
 
-        # Parking full
+
+        # ------------------------------------------
+        # PARKING FULL
+        # ------------------------------------------
+
         if slot_number is None:
 
             connection.commit()
+
 
             if vehicle_number not in waiting_queue:
 
@@ -338,19 +446,31 @@ def enter_vehicle(
                     vehicle_number
                 )
 
+
             return {
                 "success": True,
                 "queued": True,
-                "vehicle_number": vehicle_number,
+                "vehicle_number":
+                    vehicle_number,
                 "message":
                     "Parking is full. "
                     "Vehicle added to waiting queue."
             }
 
-        # Entry time
-        entry_time = datetime.now().isoformat()
 
-        # Create parking record
+        # ------------------------------------------
+        # ENTRY TIME
+        # ------------------------------------------
+
+        entry_time = (
+            datetime.now().isoformat()
+        )
+
+
+        # ------------------------------------------
+        # CREATE PARKING RECORD
+        # ------------------------------------------
+
         connection.execute("""
             INSERT INTO parking_records (
                 vehicle_id,
@@ -364,34 +484,48 @@ def enter_vehicle(
             entry_time
         ))
 
-        # Occupy slot
+
+        # ------------------------------------------
+        # OCCUPY SLOT
+        # ------------------------------------------
+
         connection.execute("""
             UPDATE parking_slots
             SET status = 'Occupied'
             WHERE slot_number = ?
-        """, (slot_number,))
+        """, (
+            slot_number,
+        ))
+
 
         connection.commit()
+
 
         return {
             "success": True,
             "queued": False,
-            "vehicle_number": vehicle_number,
-            "slot_number": slot_number,
-            "entry_time": entry_time,
+            "vehicle_number":
+                vehicle_number,
+            "slot_number":
+                slot_number,
+            "entry_time":
+                entry_time,
             "message":
                 f"Vehicle parked successfully "
                 f"in slot {slot_number}."
         }
 
+
     except Exception as error:
 
         connection.rollback()
+
 
         return {
             "success": False,
             "message": str(error)
         }
+
 
     finally:
 
@@ -409,25 +543,35 @@ def exit_vehicle(
 
     connection = get_db_connection()
 
+
     try:
 
         vehicle_number = (
-            vehicle_number.strip().upper()
+            vehicle_number
+            .strip()
+            .upper()
         )
+
 
         vehicle = find_vehicle(
             connection,
             vehicle_number
         )
 
+
         if vehicle is None:
 
             return {
                 "success": False,
-                "message": "Vehicle not found."
+                "message":
+                    "Vehicle not found."
             }
 
-        # Find active parking record
+
+        # ------------------------------------------
+        # FIND ACTIVE PARKING RECORD
+        # ------------------------------------------
+
         record = connection.execute("""
             SELECT *
             FROM parking_records
@@ -435,7 +579,10 @@ def exit_vehicle(
             AND exit_time IS NULL
             ORDER BY id DESC
             LIMIT 1
-        """, (vehicle["id"],)).fetchone()
+        """, (
+            vehicle["id"],
+        )).fetchone()
+
 
         if record is None:
 
@@ -445,22 +592,38 @@ def exit_vehicle(
                     "Vehicle is not currently parked."
             }
 
+
+        # ------------------------------------------
+        # CALCULATE DURATION
+        # ------------------------------------------
+
         entry_time = datetime.fromisoformat(
             record["entry_time"]
         )
 
+
         exit_time = datetime.now()
+
 
         duration_minutes = calculate_duration(
             entry_time,
             exit_time
         )
 
+
+        # ------------------------------------------
+        # CALCULATE COST
+        # ------------------------------------------
+
         cost = calculate_cost(
             duration_minutes
         )
 
-        # Simulated payment confirmation
+
+        # ------------------------------------------
+        # PAYMENT
+        # ------------------------------------------
+
         payment = create_payment(
             connection,
             record["id"],
@@ -468,13 +631,18 @@ def exit_vehicle(
             payment_method
         )
 
+
         if not payment["success"]:
 
             connection.rollback()
 
             return payment
 
-        # Update parking record
+
+        # ------------------------------------------
+        # UPDATE PARKING RECORD
+        # ------------------------------------------
+
         connection.execute("""
             UPDATE parking_records
             SET
@@ -489,7 +657,11 @@ def exit_vehicle(
             record["id"]
         ))
 
-        # Release slot
+
+        # ------------------------------------------
+        # RELEASE SLOT
+        # ------------------------------------------
+
         connection.execute("""
             UPDATE parking_slots
             SET status = 'Available'
@@ -498,40 +670,73 @@ def exit_vehicle(
             record["slot_number"],
         ))
 
+
         connection.commit()
 
-        # Open simulated barrier
+
+        # ------------------------------------------
+        # OPEN BARRIER
+        # ------------------------------------------
+
         barrier = open_barrier()
 
-        # Process waiting queue
+
+        # ------------------------------------------
+        # PROCESS WAITING QUEUE
+        # ------------------------------------------
+
         process_waiting_queue()
+
 
         return {
             "success": True,
-            "vehicle_number": vehicle_number,
-            "slot_number": record["slot_number"],
-            "entry_time": record["entry_time"],
-            "exit_time": exit_time.isoformat(),
-            "duration_minutes": duration_minutes,
-            "cost": cost,
-            "payment_method": payment_method,
+
+            "vehicle_number":
+                vehicle_number,
+
+            "slot_number":
+                record["slot_number"],
+
+            "entry_time":
+                record["entry_time"],
+
+            "exit_time":
+                exit_time.isoformat(),
+
+            "duration_minutes":
+                duration_minutes,
+
+            "cost":
+                cost,
+
+            "payment_method":
+                payment_method,
+
             "payment_reference":
                 payment["reference"],
-            "payment_status": "Confirmed",
-            "barrier": barrier["barrier"],
+
+            "payment_status":
+                "Confirmed",
+
+            "barrier":
+                barrier["barrier"],
+
             "message":
                 "Payment confirmed. "
                 "Barrier opened."
         }
 
+
     except Exception as error:
 
         connection.rollback()
+
 
         return {
             "success": False,
             "message": str(error)
         }
+
 
     finally:
 
@@ -548,31 +753,43 @@ def process_waiting_queue():
 
         connection = get_db_connection()
 
+
         try:
 
             slot_number = find_available_slot(
                 connection
             )
 
+
             if slot_number is None:
 
                 connection.close()
+
                 return
 
+
             vehicle_number = waiting_queue[0]
+
 
             vehicle = find_vehicle(
                 connection,
                 vehicle_number
             )
 
+
             if vehicle is None:
 
                 waiting_queue.popleft()
+
                 connection.close()
+
                 continue
 
-            # Check if already parked
+
+            # --------------------------------------
+            # CHECK IF ALREADY PARKED
+            # --------------------------------------
+
             active = connection.execute("""
                 SELECT *
                 FROM parking_records
@@ -582,13 +799,20 @@ def process_waiting_queue():
                 vehicle["id"],
             )).fetchone()
 
+
             if active:
 
                 waiting_queue.popleft()
+
                 connection.close()
+
                 continue
 
-            entry_time = datetime.now().isoformat()
+
+            entry_time = (
+                datetime.now().isoformat()
+            )
+
 
             connection.execute("""
                 INSERT INTO parking_records (
@@ -603,6 +827,7 @@ def process_waiting_queue():
                 entry_time
             ))
 
+
             connection.execute("""
                 UPDATE parking_slots
                 SET status = 'Occupied'
@@ -611,14 +836,19 @@ def process_waiting_queue():
                 slot_number,
             ))
 
+
             connection.commit()
 
+
             waiting_queue.popleft()
+
 
         except Exception:
 
             connection.rollback()
+
             return
+
 
         finally:
 
@@ -633,11 +863,15 @@ def search_vehicle(vehicle_number):
 
     connection = get_db_connection()
 
+
     try:
 
         vehicle_number = (
-            vehicle_number.strip().upper()
+            vehicle_number
+            .strip()
+            .upper()
         )
+
 
         vehicle = connection.execute("""
             SELECT *
@@ -647,12 +881,15 @@ def search_vehicle(vehicle_number):
             vehicle_number,
         )).fetchone()
 
+
         if vehicle is None:
 
             return {
                 "success": False,
-                "message": "Vehicle not found."
+                "message":
+                    "Vehicle not found."
             }
+
 
         active = connection.execute("""
             SELECT *
@@ -665,23 +902,34 @@ def search_vehicle(vehicle_number):
             vehicle["id"],
         )).fetchone()
 
+
         return {
+
             "success": True,
+
             "vehicle_number":
                 vehicle["vehicle_number"],
+
             "owner_name":
                 vehicle["owner_name"],
+
             "vehicle_type":
                 vehicle["vehicle_type"],
+
             "parked":
                 active is not None,
+
             "slot_number":
                 active["slot_number"]
-                if active else None,
+                if active
+                else None,
+
             "entry_time":
                 active["entry_time"]
-                if active else None
+                if active
+                else None
         }
+
 
     finally:
 
@@ -689,7 +937,7 @@ def search_vehicle(vehicle_number):
 
 
 # ==================================================
-# ROUTES
+# HOME
 # ==================================================
 
 @app.route("/")
@@ -700,56 +948,84 @@ def home():
     )
 
 
-# -----------------------------
+# ==================================================
 # ENTRY
-# -----------------------------
+# ==================================================
 
-@app.route("/entry", methods=["POST"])
+@app.route(
+    "/entry",
+    methods=["POST"]
+)
 def entry():
 
     data = request.get_json()
 
+
     if not data:
 
         return jsonify({
             "success": False,
-            "message": "No data received."
+            "message":
+                "No data received."
         })
 
+
     result = enter_vehicle(
-        data.get("vehicle_number", ""),
-        data.get("owner_name", ""),
-        data.get("vehicle_type", "")
+
+        data.get(
+            "vehicle_number",
+            ""
+        ),
+
+        data.get(
+            "owner_name",
+            ""
+        ),
+
+        data.get(
+            "vehicle_type",
+            ""
+        )
+
     )
+
 
     return jsonify(result)
 
 
-# -----------------------------
+# ==================================================
 # EXIT
-# -----------------------------
+# ==================================================
 
-@app.route("/exit", methods=["POST"])
+@app.route(
+    "/exit",
+    methods=["POST"]
+)
 def exit_route():
 
     data = request.get_json()
+
 
     if not data:
 
         return jsonify({
             "success": False,
-            "message": "No data received."
+            "message":
+                "No data received."
         })
+
 
     vehicle_number = data.get(
         "vehicle_number",
         ""
     )
 
+
     payment_method = data.get(
         "payment_method",
         ""
     )
+
 
     if not vehicle_number:
 
@@ -759,6 +1035,7 @@ def exit_route():
                 "Vehicle number is required."
         })
 
+
     if not payment_method:
 
         return jsonify({
@@ -767,19 +1044,24 @@ def exit_route():
                 "Payment method is required."
         })
 
+
     result = exit_vehicle(
         vehicle_number,
         payment_method
     )
 
+
     return jsonify(result)
 
 
-# -----------------------------
+# ==================================================
 # SEARCH
-# -----------------------------
+# ==================================================
 
-@app.route("/search", methods=["GET"])
+@app.route(
+    "/search",
+    methods=["GET"]
+)
 def search():
 
     vehicle_number = request.args.get(
@@ -787,21 +1069,27 @@ def search():
         ""
     )
 
+
     result = search_vehicle(
         vehicle_number
     )
 
+
     return jsonify(result)
 
 
-# -----------------------------
+# ==================================================
 # PARKED VEHICLES
-# -----------------------------
+# ==================================================
 
-@app.route("/vehicles", methods=["GET"])
+@app.route(
+    "/vehicles",
+    methods=["GET"]
+)
 def vehicles():
 
     connection = get_db_connection()
+
 
     rows = connection.execute("""
         SELECT
@@ -810,14 +1098,20 @@ def vehicles():
             v.vehicle_type,
             p.slot_number,
             p.entry_time
+
         FROM parking_records p
+
         JOIN vehicles v
         ON p.vehicle_id = v.id
+
         WHERE p.exit_time IS NULL
+
         ORDER BY p.entry_time
     """).fetchall()
 
+
     connection.close()
+
 
     return jsonify([
         dict(row)
@@ -825,24 +1119,32 @@ def vehicles():
     ])
 
 
-# -----------------------------
-# SLOTS
-# -----------------------------
+# ==================================================
+# PARKING SLOTS
+# ==================================================
 
-@app.route("/slots", methods=["GET"])
+@app.route(
+    "/slots",
+    methods=["GET"]
+)
 def slots():
 
     connection = get_db_connection()
+
 
     rows = connection.execute("""
         SELECT
             slot_number,
             status
+
         FROM parking_slots
+
         ORDER BY id
     """).fetchall()
 
+
     connection.close()
+
 
     return jsonify([
         dict(row)
@@ -850,53 +1152,75 @@ def slots():
     ])
 
 
-# -----------------------------
-# QUEUE
-# -----------------------------
+# ==================================================
+# WAITING QUEUE
+# ==================================================
 
-@app.route("/queue", methods=["GET"])
+@app.route(
+    "/queue",
+    methods=["GET"]
+)
 def queue():
 
     return jsonify({
-        "queue": list(waiting_queue),
-        "count": len(waiting_queue)
+
+        "queue":
+            list(waiting_queue),
+
+        "count":
+            len(waiting_queue)
+
     })
 
 
-# -----------------------------
-# GET RATE
-# -----------------------------
+# ==================================================
+# GET PARKING RATE
+# ==================================================
 
-@app.route("/rate", methods=["GET"])
+@app.route(
+    "/rate",
+    methods=["GET"]
+)
 def get_rate():
 
     return jsonify({
+
         "success": True,
-        "rate": get_cost_per_minute()
+
+        "rate":
+            get_cost_per_minute()
+
     })
 
 
-# -----------------------------
-# UPDATE RATE
-# -----------------------------
+# ==================================================
+# UPDATE PARKING RATE
+# ==================================================
 
-@app.route("/rate", methods=["POST"])
+@app.route(
+    "/rate",
+    methods=["POST"]
+)
 def update_rate():
 
     data = request.get_json()
+
 
     if not data:
 
         return jsonify({
             "success": False,
-            "message": "No data received."
+            "message":
+                "No data received."
         })
+
 
     try:
 
         new_rate = float(
             data.get("rate")
         )
+
 
         if new_rate < 0:
 
@@ -906,7 +1230,11 @@ def update_rate():
                     "Rate cannot be negative."
             })
 
-    except (TypeError, ValueError):
+
+    except (
+        TypeError,
+        ValueError
+    ):
 
         return jsonify({
             "success": False,
@@ -914,19 +1242,26 @@ def update_rate():
                 "Please enter a valid rate."
         })
 
+
     return jsonify(
-        set_cost_per_minute(new_rate)
+        set_cost_per_minute(
+            new_rate
+        )
     )
 
 
-# -----------------------------
+# ==================================================
 # PAYMENT HISTORY
-# -----------------------------
+# ==================================================
 
-@app.route("/payments", methods=["GET"])
+@app.route(
+    "/payments",
+    methods=["GET"]
+)
 def payments():
 
     connection = get_db_connection()
+
 
     rows = connection.execute("""
         SELECT
@@ -937,15 +1272,21 @@ def payments():
             p.payment_status,
             p.payment_reference,
             p.payment_time
+
         FROM payments p
+
         JOIN parking_records r
         ON p.parking_record_id = r.id
+
         JOIN vehicles v
         ON r.vehicle_id = v.id
+
         ORDER BY p.id DESC
     """).fetchall()
 
+
     connection.close()
+
 
     return jsonify([
         dict(row)
@@ -953,16 +1294,23 @@ def payments():
     ])
 
 
-# -----------------------------
+# ==================================================
 # BARRIER STATUS
-# -----------------------------
+# ==================================================
 
-@app.route("/barrier", methods=["GET"])
+@app.route(
+    "/barrier",
+    methods=["GET"]
+)
 def barrier():
 
     return jsonify({
+
         "success": True,
-        "barrier": barrier_state
+
+        "barrier":
+            barrier_state
+
     })
 
 
@@ -972,4 +1320,14 @@ def barrier():
 
 if __name__ == "__main__":
 
-    from database import cre
+    from database import database
+
+
+    database()
+
+
+    app.run(
+        host="0.0.0.0",
+        port=5000,
+        debug=True
+                  )
