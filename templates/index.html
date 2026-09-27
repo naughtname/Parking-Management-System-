@@ -1390,23 +1390,25 @@ tbody tr:hover {
 </div>
 
 
-<!-- ==================================================
-     PARKED VEHICLES
-     ================================================== -->
+<!-- Parked Vehicles -->
 
-<div class="card"
-     style="margin-top:18px;">
+<section class="card wide-card">
 
+    <div class="section-heading">
 
-    <div class="section-title">
+        <div>
+            <h2>🚙 Parked Vehicles</h2>
 
-        <h2>
-            🚗 Currently Parked Vehicles
-        </h2>
+            <p>
+                Vehicles currently inside the parking area
+            </p>
+        </div>
 
-        <span id="vehicleCount"
-              class="small-count">
-            0 vehicles
+        <span
+            class="count-badge"
+            id="vehicleCount"
+        >
+            0
         </span>
 
     </div>
@@ -1420,20 +1422,1383 @@ tbody tr:hover {
 
                 <tr>
 
-                    <th>
-                        Vehicle
-                    </th>
+                    <th>Vehicle Number</th>
 
-                    <th>
-                        Owner
-                    </th>
+                    <th>Owner</th>
 
-                    <th>
-                        Type
-                    </th>
+                    <th>Vehicle Type</th>
 
-                    <th>
-                        Slot
-                    </th>
+                    <th>Slot</th>
 
-                 
+                    <th>Entry Time</th>
+
+                </tr>
+
+            </thead>
+
+
+            <tbody id="vehiclesTable">
+
+                <tr>
+
+                    <td
+                        colspan="5"
+                        class="empty-row"
+                    >
+                        No vehicles currently parked.
+                    </td>
+
+                </tr>
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</section>
+
+
+<!-- Waiting Queue -->
+
+<section class="card wide-card">
+
+    <div class="section-heading">
+
+        <div>
+
+            <h2>⏳ Waiting Queue</h2>
+
+            <p>
+                Vehicles waiting for an available parking slot
+            </p>
+
+        </div>
+
+
+        <span
+            class="count-badge"
+            id="queueBadge"
+        >
+            0
+        </span>
+
+    </div>
+
+
+    <div
+        id="queueList"
+        class="queue-list"
+    >
+
+        <div class="empty-state">
+
+            <span class="empty-icon">
+                🅿️
+            </span>
+
+            <p>
+                No vehicles are waiting.
+            </p>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+<!-- Payment History -->
+
+<section class="card wide-card">
+
+    <div class="section-heading">
+
+        <div>
+
+            <h2>💳 Payment History</h2>
+
+            <p>
+                Recent parking payments
+            </p>
+
+        </div>
+
+
+        <span
+            class="count-badge"
+            id="paymentCount"
+        >
+            0
+        </span>
+
+    </div>
+
+
+    <div class="table-wrapper">
+
+        <table>
+
+            <thead>
+
+                <tr>
+
+                    <th>Vehicle</th>
+
+                    <th>Amount</th>
+
+                    <th>Payment Method</th>
+
+                    <th>Status</th>
+
+                    <th>Reference</th>
+
+                    <th>Payment Time</th>
+
+                </tr>
+
+            </thead>
+
+
+            <tbody id="paymentsTable">
+
+                <tr>
+
+                    <td
+                        colspan="6"
+                        class="empty-row"
+                    >
+                        No payments recorded yet.
+                    </td>
+
+                </tr>
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</section>
+
+
+</main>
+
+
+<!-- ==================================================
+     JAVASCRIPT
+     ================================================== -->
+
+<script>
+
+
+// ==================================================
+// MESSAGE DISPLAY
+// ==================================================
+
+function showMessage(
+    message,
+    type = "success"
+) {
+
+    const messageBox =
+        document.getElementById("message");
+
+
+    messageBox.textContent = message;
+
+
+    messageBox.className =
+        "message " + type;
+
+
+    messageBox.style.display = "block";
+
+
+    setTimeout(() => {
+
+        messageBox.style.display = "none";
+
+    }, 5000);
+
+}
+
+
+
+// ==================================================
+// FORMAT DATE
+// ==================================================
+
+function formatDate(
+    dateString
+) {
+
+    if (!dateString) {
+
+        return "-";
+
+    }
+
+
+    const date =
+        new Date(dateString);
+
+
+    if (isNaN(date.getTime())) {
+
+        return dateString;
+
+    }
+
+
+    return date.toLocaleString();
+
+}
+
+
+
+// ==================================================
+// ENTRY FORM
+// ==================================================
+
+document
+    .getElementById("entryForm")
+    .addEventListener(
+        "submit",
+        async function(event) {
+
+            event.preventDefault();
+
+
+            const vehicleNumber =
+                document.getElementById(
+                    "entryVehicle"
+                ).value;
+
+
+            const ownerName =
+                document.getElementById(
+                    "ownerName"
+                ).value;
+
+
+            const vehicleType =
+                document.getElementById(
+                    "vehicleType"
+                ).value;
+
+
+            try {
+
+                const response =
+                    await fetch(
+                        "/entry",
+                        {
+                            method: "POST",
+
+                            headers: {
+                                "Content-Type":
+                                    "application/json"
+                            },
+
+                            body: JSON.stringify({
+
+                                vehicle_number:
+                                    vehicleNumber,
+
+                                owner_name:
+                                    ownerName,
+
+                                vehicle_type:
+                                    vehicleType
+
+                            })
+                        }
+                    );
+
+
+                const result =
+                    await response.json();
+
+
+                if (result.success) {
+
+                    showMessage(
+                        result.message,
+                        "success"
+                    );
+
+
+                    document
+                        .getElementById(
+                            "entryForm"
+                        )
+                        .reset();
+
+
+                    loadDashboard();
+
+                }
+
+                else {
+
+                    showMessage(
+                        result.message,
+                        "error"
+                    );
+
+                }
+
+
+            }
+
+            catch (error) {
+
+                showMessage(
+                    "Unable to connect to the server.",
+                    "error"
+                );
+
+                console.error(error);
+
+            }
+
+        }
+    );
+
+
+
+// ==================================================
+// EXIT FORM
+// ==================================================
+
+document
+    .getElementById("exitForm")
+    .addEventListener(
+        "submit",
+        async function(event) {
+
+            event.preventDefault();
+
+
+            const vehicleNumber =
+                document.getElementById(
+                    "exitVehicle"
+                ).value;
+
+
+            const paymentMethod =
+                document.getElementById(
+                    "paymentMethod"
+                ).value;
+
+
+            try {
+
+                const response =
+                    await fetch(
+                        "/exit",
+                        {
+                            method: "POST",
+
+                            headers: {
+                                "Content-Type":
+                                    "application/json"
+                            },
+
+                            body: JSON.stringify({
+
+                                vehicle_number:
+                                    vehicleNumber,
+
+                                payment_method:
+                                    paymentMethod
+
+                            })
+                        }
+                    );
+
+
+                const result =
+                    await response.json();
+
+
+                if (result.success) {
+
+                    showMessage(
+                        result.message,
+                        "success"
+                    );
+
+
+                    document
+                        .getElementById(
+                            "receipt"
+                        )
+                        .style.display =
+                            "block";
+
+
+                    document
+                        .getElementById(
+                            "receiptVehicle"
+                        )
+                        .textContent =
+                            result.vehicle_number;
+
+
+                    document
+                        .getElementById(
+                            "receiptSlot"
+                        )
+                        .textContent =
+                            result.slot_number;
+
+
+                    document
+                        .getElementById(
+                            "receiptDuration"
+                        )
+                        .textContent =
+                            result.duration_minutes
+                            + " minutes";
+
+
+                    document
+                        .getElementById(
+                            "receiptAmount"
+                        )
+                        .textContent =
+                            result.cost;
+
+
+                    document
+                        .getElementById(
+                            "receiptMethod"
+                        )
+                        .textContent =
+                            result.payment_method;
+
+
+                    document
+                        .getElementById(
+                            "receiptStatus"
+                        )
+                        .textContent =
+                            result.payment_status;
+
+
+                    document
+                        .getElementById(
+                            "receiptReference"
+                        )
+                        .textContent =
+                            result.payment_reference;
+
+
+                    document
+                        .getElementById(
+                            "receiptBarrier"
+                        )
+                        .textContent =
+                            result.barrier;
+
+
+                    document
+                        .getElementById(
+                            "exitForm"
+                        )
+                        .reset();
+
+
+                    loadDashboard();
+
+                }
+
+                else {
+
+                    showMessage(
+                        result.message,
+                        "error"
+                    );
+
+                }
+
+
+            }
+
+            catch (error) {
+
+                showMessage(
+                    "Unable to connect to the server.",
+                    "error"
+                );
+
+                console.error(error);
+
+            }
+
+        }
+    );
+
+
+
+// ==================================================
+// SEARCH VEHICLE
+// ==================================================
+
+document
+    .getElementById("searchForm")
+    .addEventListener(
+        "submit",
+        async function(event) {
+
+            event.preventDefault();
+
+
+            const vehicleNumber =
+                document.getElementById(
+                    "searchVehicle"
+                ).value;
+
+
+            const resultBox =
+                document.getElementById(
+                    "searchResult"
+                );
+
+
+            try {
+
+                const response =
+                    await fetch(
+                        "/search?vehicle_number="
+                        +
+                        encodeURIComponent(
+                            vehicleNumber
+                        )
+                    );
+
+
+                const result =
+                    await response.json();
+
+
+                if (result.success) {
+
+                    resultBox.innerHTML = `
+
+                        <div class="search-success">
+
+                            <strong>
+                                ${result.vehicle_number}
+                            </strong>
+
+                            <p>
+                                Owner:
+                                ${result.owner_name}
+                            </p>
+
+                            <p>
+                                Type:
+                                ${result.vehicle_type}
+                            </p>
+
+                            <p>
+                                Status:
+                                ${
+                                    result.parked
+                                    ? "Currently Parked"
+                                    : "Not Parked"
+                                }
+                            </p>
+
+                            ${
+                                result.parked
+                                ?
+                                `
+                                <p>
+                                    Slot:
+                                    ${result.slot_number}
+                                </p>
+
+                                <p>
+                                    Entry:
+                                    ${formatDate(
+                                        result.entry_time
+                                    )}
+                                </p>
+                                `
+                                :
+                                ""
+                            }
+
+                        </div>
+
+                    `;
+
+                }
+
+                else {
+
+                    resultBox.innerHTML = `
+
+                        <div class="search-error">
+
+                            ${result.message}
+
+                        </div>
+
+                    `;
+
+                }
+
+
+            }
+
+            catch (error) {
+
+                resultBox.innerHTML = `
+
+                    <div class="search-error">
+
+                        Unable to connect to the server.
+
+                    </div>
+
+                `;
+
+                console.error(error);
+
+            }
+
+        }
+    );
+
+
+
+// ==================================================
+// LOAD PARKING RATE
+// ==================================================
+
+async function loadRate() {
+
+    try {
+
+        const response =
+            await fetch("/rate");
+
+
+        const result =
+            await response.json();
+
+
+        if (result.success) {
+
+            document
+                .getElementById(
+                    "currentRate"
+                )
+                .textContent =
+                    result.rate;
+
+        }
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "Unable to load rate:",
+            error
+        );
+
+    }
+
+}
+
+
+
+// ==================================================
+// UPDATE PARKING RATE
+// ==================================================
+
+document
+    .getElementById("rateForm")
+    .addEventListener(
+        "submit",
+        async function(event) {
+
+            event.preventDefault();
+
+
+            const newRate =
+                document.getElementById(
+                    "newRate"
+                ).value;
+
+
+            try {
+
+                const response =
+                    await fetch(
+                        "/rate",
+                        {
+                            method: "POST",
+
+                            headers: {
+                                "Content-Type":
+                                    "application/json"
+                            },
+
+                            body: JSON.stringify({
+
+                                rate:
+                                    newRate
+
+                            })
+                        }
+                    );
+
+
+                const result =
+                    await response.json();
+
+
+                if (result.success) {
+
+                    showMessage(
+                        result.message,
+                        "success"
+                    );
+
+
+                    document
+                        .getElementById(
+                            "rateForm"
+                        )
+                        .reset();
+
+
+                    loadRate();
+
+                }
+
+                else {
+
+                    showMessage(
+                        result.message,
+                        "error"
+                    );
+
+                }
+
+
+            }
+
+            catch (error) {
+
+                showMessage(
+                    "Unable to update parking rate.",
+                    "error"
+                );
+
+                console.error(error);
+
+            }
+
+        }
+    );
+
+
+
+// ==================================================
+// LOAD PARKED VEHICLES
+// ==================================================
+
+async function loadVehicles() {
+
+    try {
+
+        const response =
+            await fetch("/vehicles");
+
+
+        const vehicles =
+            await response.json();
+
+
+        const table =
+            document.getElementById(
+                "vehiclesTable"
+            );
+
+
+        const count =
+            document.getElementById(
+                "vehicleCount"
+            );
+
+
+        count.textContent =
+            vehicles.length;
+
+
+        if (vehicles.length === 0) {
+
+            table.innerHTML = `
+
+                <tr>
+
+                    <td
+                        colspan="5"
+                        class="empty-row"
+                    >
+                        No vehicles currently parked.
+                    </td>
+
+                </tr>
+
+            `;
+
+            return;
+
+        }
+
+
+        table.innerHTML =
+            vehicles.map(
+                vehicle => `
+
+                    <tr>
+
+                        <td>
+                            <strong>
+                                ${vehicle.vehicle_number}
+                            </strong>
+                        </td>
+
+                        <td>
+                            ${vehicle.owner_name}
+                        </td>
+
+                        <td>
+                            ${vehicle.vehicle_type}
+                        </td>
+
+                        <td>
+
+                            <span class="slot-mini">
+
+                                ${vehicle.slot_number}
+
+                            </span>
+
+                        </td>
+
+                        <td>
+                            ${formatDate(
+                                vehicle.entry_time
+                            )}
+                        </td>
+
+                    </tr>
+
+                `
+            ).join("");
+
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "Unable to load vehicles:",
+            error
+        );
+
+    }
+
+}
+
+
+
+// LOADING PARKING SLOTS
+// ==================================================
+
+async function loadSlots() {
+
+    try {
+
+        const response =
+            await fetch("/slots");
+
+
+        const slots =
+            await response.json();
+
+
+        const container =
+            document.getElementById(
+                "slots"
+            );
+
+
+        const summary =
+            document.getElementById(
+                "slotSummary"
+            );
+
+
+        let available = 0;
+
+        let occupied = 0;
+
+
+        container.innerHTML = "";
+
+
+        slots.forEach(
+            slot => {
+
+                const slotElement =
+                    document.createElement(
+                        "div"
+                    );
+
+
+                slotElement.className =
+                    "parking-slot "
+                    +
+                    (
+                        slot.status === "Available"
+                        ? "available"
+                        : "occupied"
+                    );
+
+
+                slotElement.innerHTML = `
+
+                    <span class="slot-number">
+
+                        ${slot.slot_number}
+
+                    </span>
+
+                    <span class="slot-status">
+
+                        ${
+                            slot.status === "Available"
+                            ? "Free"
+                            : "Busy"
+                        }
+
+                    </span>
+
+                `;
+
+
+                container.appendChild(
+                    slotElement
+                );
+
+
+                if (
+                    slot.status ===
+                    "Available"
+                ) {
+
+                    available++;
+
+                }
+
+                else {
+
+                    occupied++;
+
+                }
+
+            }
+        );
+
+
+        summary.textContent =
+            available
+            +
+            " available • "
+            +
+            occupied
+            +
+            " occupied";
+
+
+        document
+            .getElementById(
+                "availableCount"
+            )
+            .textContent =
+                available;
+
+
+        document
+            .getElementById(
+                "occupiedCount"
+            )
+            .textContent =
+                occupied;
+
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "Unable to load slots:",
+            error
+        );
+
+    }
+
+}
+
+
+
+// ==================================================
+// LOAD WAITING QUEUE
+// ==================================================
+
+async function loadQueue() {
+
+    try {
+
+        const response =
+            await fetch("/queue");
+
+
+        const result =
+            await response.json();
+
+
+        const list =
+            document.getElementById(
+                "queueList"
+            );
+
+
+        const badge =
+            document.getElementById(
+                "queueBadge"
+            );
+
+
+        const queueCount =
+            document.getElementById(
+                "queueCount"
+            );
+
+
+        badge.textContent =
+            result.count;
+
+
+        queueCount.textContent =
+            result.count;
+
+
+        if (
+            result.queue.length === 0
+        ) {
+
+            list.innerHTML = `
+
+                <div class="empty-state">
+
+                    <span class="empty-icon">
+                        🅿️
+                    </span>
+
+                    <p>
+                        No vehicles are waiting.
+                    </p>
+
+                </div>
+
+            `;
+
+            return;
+
+        }
+
+
+        list.innerHTML =
+            result.queue.map(
+                (vehicle, index) => `
+
+                    <div class="queue-item">
+
+                        <span class="queue-number">
+
+                            ${index + 1}
+
+                        </span>
+
+                        <strong>
+
+                            ${vehicle}
+
+                        </strong>
+
+                        <span class="waiting-label">
+
+                            Waiting
+
+                        </span>
+
+                    </div>
+
+                `
+            ).join("");
+
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "Unable to load queue:",
+            error
+        );
+
+    }
+
+}
+
+
+
+// ==================================================
+// LOAD PAYMENT HISTORY
+// ==================================================
+
+async function loadPayments() {
+
+    try {
+
+        const response =
+            await fetch("/payments");
+
+
+        const payments =
+            await response.json();
+
+
+        const table =
+            document.getElementById(
+                "paymentsTable"
+            );
+
+
+        const count =
+            document.getElementById(
+                "paymentCount"
+            );
+
+
+        count.textContent =
+            payments.length;
+
+
+        if (payments.length === 0) {
+
+            table.innerHTML = `
+
+                <tr>
+
+                    <td
+                        colspan="6"
+                        class="empty-row"
+                    >
+                        No payments recorded yet.
+                    </td>
+
+                </tr>
+
+            `;
+
+            return;
+
+        }
+
+
+        table.innerHTML =
+            payments.map(
+                payment => `
+
+                    <tr>
+
+                        <td>
+                            <strong>
+                                ${payment.vehicle_number}
+                            </strong>
+                        </td>
+
+                        <td>
+                            ${payment.amount}
+                        </td>
+
+                        <td>
+                            ${payment.payment_method}
+                        </td>
+
+                        <td>
+
+                            <span class="payment-status">
+
+                                ${payment.payment_status}
+
+                            </span>
+
+                        </td>
+
+                        <td>
+
+                            <small>
+                                ${payment.payment_reference}
+                            </small>
+
+                        </td>
+
+                        <td>
+                            ${formatDate(
+                                payment.payment_time
+                            )}
+                        </td>
+
+                    </tr>
+
+                `
+            ).join("");
+
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "Unable to load payments:",
+            error
+        );
+
+    }
+
+}
+
+
+
+// ==================================================
+// LOAD BARRIER STATUS
+// ==================================================
+
+async function loadBarrier() {
+
+    try {
+
+        const response =
+            await fetch("/barrier");
+
+
+        const result =
+            await response.json();
+
+
+        const barrierStatus =
+            document.getElementById(
+                "barrierStatus"
+            );
+
+
+        barrierStatus.textContent =
+            result.barrier;
+
+
+        barrierStatus.className =
+            "barrier-status "
+            +
+            (
+                result.barrier === "Open"
+                ? "open"
+                : "closed"
+            );
+
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "Unable to load barrier:",
+            error
+        );
+
+    }
+
+}
+
+
+
+// ==================================================
+// LOAD EVERYTHING
+// ==================================================
+
+function loadDashboard() {
+
+    loadRate();
+
+    loadVehicles();
+
+    loadSlots();
+
+    loadQueue();
+
+    loadPayments();
+
+    loadBarrier();
+
+}
+
+
+
+// ==================================================
+// START DASHBOARD
+// ==================================================
+
+document.addEventListener(
+    "DOMContentLoaded",
+    function() {
+
+        loadDashboard();
+
+    }
+);
+
+
+
+// ==================================================
+// REFRESH DASHBOARD
+// ==================================================
+
+setInterval(
+    function() {
+
+        loadDashboard();
+
+    },
+    10000
+);
+
+
+</script>
+
+
+</body>
+
+</html>
