@@ -1,13 +1,16 @@
 import sqlite3
 
 
-def create_database():
+def database():
+
     connection = sqlite3.connect("parking.db")
+
     cursor = connection.cursor()
 
-    # -----------------------------
+
+    # ==================================================
     # VEHICLES
-    # -----------------------------
+    # ==================================================
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS vehicles (
@@ -18,9 +21,10 @@ def create_database():
         )
     """)
 
-    # -----------------------------
+
+    # ==================================================
     # PARKING SLOTS
-    # -----------------------------
+    # ==================================================
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS parking_slots (
@@ -30,9 +34,10 @@ def create_database():
         )
     """)
 
-    # -----------------------------
+
+    # ==================================================
     # PARKING RECORDS
-    # -----------------------------
+    # ==================================================
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS parking_records (
@@ -43,14 +48,16 @@ def create_database():
             exit_time TEXT,
             duration_minutes INTEGER,
             cost REAL,
+
             FOREIGN KEY (vehicle_id)
                 REFERENCES vehicles(id)
         )
     """)
 
-    # -----------------------------
+
+    # ==================================================
     # PARKING SETTINGS
-    # -----------------------------
+    # ==================================================
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS parking_settings (
@@ -59,15 +66,17 @@ def create_database():
         )
     """)
 
+
     cursor.execute("""
         INSERT OR IGNORE INTO parking_settings
         (id, cost_per_minute)
         VALUES (1, 1)
     """)
 
-    # -----------------------------
+
+    # ==================================================
     # PAYMENTS
-    # -----------------------------
+    # ==================================================
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS payments (
@@ -78,29 +87,43 @@ def create_database():
             payment_status TEXT NOT NULL,
             payment_reference TEXT,
             payment_time TEXT NOT NULL,
+
             FOREIGN KEY (parking_record_id)
                 REFERENCES parking_records(id)
         )
     """)
 
-    # -----------------------------
+
+    # ==================================================
     # CREATE 50 PARKING SLOTS
-    # -----------------------------
+    # ==================================================
 
     for i in range(1, 51):
 
         slot_number = f"P{i:02d}"
 
+
         cursor.execute("""
             INSERT OR IGNORE INTO parking_slots
             (slot_number, status)
             VALUES (?, ?)
-        """, (slot_number, "Available"))
+        """, (
+            slot_number,
+            "Available"
+        ))
+
 
     connection.commit()
+
     connection.close()
 
 
+# ==================================================
+# RUN DATABASE SETUP
+# ==================================================
+
 if __name__ == "__main__":
-    create_database()
+
+    database()
+
     print("Database created successfully!")
